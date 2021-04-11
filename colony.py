@@ -1,11 +1,13 @@
 from typing import Tuple, Optional
 from ant import Ant
+import random
 import numpy
 
 class Colony:
     def __init__(self, 
         size : Tuple[int, int], 
-        location : Tuple[int, int]
+        location : Tuple[int, int],
+        intensity : Optional[int]
         ):
         self.size = size
         self.origin = location
@@ -16,15 +18,12 @@ class Colony:
         self.ants = []
 
         # Constants
-        self.MAX_SCENT_INTENSITY = 10
+        self.MAX_SCENT_INTENSITY = intensity
 
     def next_frame(self):
         """Simulate the next frame for the ant colony"""
         for ant in self.ants:
-            x, y = ant.move(
-                self.scent, self.size, 
-                self.MAX_SCENT_INTENSITY
-            )
+            x, y = ant.move(self.scent, self.size)
 
             # Hungry ant finds food
             if (x, y) in self.food and ant.state == 'HUNGRY':
@@ -40,7 +39,7 @@ class Colony:
         
         self.__decay_scent()
 
-    def render(self):
+    def render(self, pixel_size : int):
         """Show the colony's current state"""
         view = numpy.ndarray((*self.size, 3)) * 0
 
@@ -73,8 +72,8 @@ class Colony:
             x, y = self.origin
             view[x, y, i] = 166
         
-        view = numpy.repeat(view, 6, axis=0)
-        view = numpy.repeat(view, 6, axis=1)
+        view = numpy.repeat(view, pixel_size, axis=0)
+        view = numpy.repeat(view, pixel_size, axis=1)
         return view.astype('uint8')
 
     def spawn_ant(self, amount=1):
@@ -82,7 +81,7 @@ class Colony:
         for _ in range(amount):
             x, y = self.origin
             self.ants.append(
-                Ant((x, y, 'HUNGRY'))
+                Ant((x, y, 'HUNGRY'), self.MAX_SCENT_INTENSITY)
             )
     
     def spawn_food(self, 

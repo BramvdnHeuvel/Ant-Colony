@@ -4,8 +4,10 @@ import random
 
 class Ant:
     def __init__(self,  
-            coords : Tuple[int, int, int]
+            coords : Tuple[int, int, int],
+            intensity : int
             ):
+        self.intensity = intensity
         self.direction = (0, 0)
         self.coords = coords
     
@@ -15,11 +17,10 @@ class Ant:
 
     def move(self, 
         scent : Dict[int, Dict[int, Dict[int, int]]],
-        border : Tuple[int, int], intensity : int
-            ) -> Tuple[int, int]:
+        border : Tuple[int, int]) -> Tuple[int, int]:
         """Move on the board"""
         dx, dy = self.__choose_direction(border, scent)
-        self.leave_scent(scent, intensity)
+        self.leave_scent(scent)
         
         x, y, z = self.coords
         self.coords = (x+dx, y+dy, z)
@@ -32,16 +33,16 @@ class Ant:
         x, y, _ = self.coords
         self.coords = (x, y, state)
 
-    def leave_scent(self, s, intensity : int):
+    def leave_scent(self, s):
         """Leave behind a scent to pick up"""
         x, y, z = self.coords
 
         if x not in s:
-            s[x] = {y: {z: intensity}}
+            s[x] = {y: {z: self.intensity}}
         elif y not in s[x]:
-            s[x][y] = {z: intensity}
+            s[x][y] = {z: self.intensity}
         else:
-            s[x][y][z] = intensity
+            s[x][y][z] = self.intensity
 
     
     def __choose_direction(self, 
