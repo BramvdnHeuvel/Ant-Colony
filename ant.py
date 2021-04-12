@@ -53,55 +53,76 @@ class Ant:
         x, y, z = self.coords
         pfx, pfy = self.direction
 
-        scents = {(a, b): 0 for a, b in product([-1, 0, 1], repeat=2) if not (a==b==0)}
+        # Determine how attractive nearby tiles are
+        attractive = {}
+        neutral = []
+        unattractive = {}
+        for dx, dy in product([-1, 0, 1], repeat=2):
+            if dx == dy:
+                continue
+            if abs(pfx-dx) + abs(pfy-dy) == 4:
+                continue
+            if pfx == dx == 0 and pfy != dy:
+                continue
+            if pfy == dy == 0 and pfx != dx:
+                continue
+            if x+dx < 0 or border[0] <= x+dx:
+                continue
+            if y+dy < 0 or border[1] <= y+dy:
+                continue
 
-        # Directions that the ant could walk to
-        for dx, dy in scents:
-            preferred_direction = 4 - abs(pfx-dx) - abs(pfy-dy)
-            preferred_direction += -2*int(pfx==dx==0 or pfy==dy==0)
-            scents[dx, dy] += preferred_direction
+            try:
+                flavours = colony_scent[x+dx][y+dy]
+            except KeyError:
+                flavours = {}
 
-            # Directions from which it smells the scent
-            for scx, scy in scents:
+            for f in flavours:
+                if f != z:
+                    attractive[dx, dy] = flavours[f]
+                    break
+            else:
+                if z in flavours:
+                    unattractive[dx, dy] = flavours[z]
+                #else:
+                neutral.append((dx, dy))
 
-                try:
-                    flavours = colony_scent[x+dx][y+dy]
-                except KeyError:
-                    flavours = {}
-                linear_dependence = 4 - abs(dx-scx) - abs(dy-scy)
-                linear_dependence += -2*int(scx==dx==0 or scy==dy==0)
-
-                # Determine whether scents work
-                # positively or negatively
-                attraction = 0
-
-                for f in flavours:
-                    if f == z:
-                        # Same scent disperses
-                        pass
-                        #attraction += flavours[f] * (4-linear_dependence) * preferred_direction
-                    else:
-                        # Other scents attract
-                        attraction += flavours[f] * linear_dependence * preferred_direction
-
-                scents[dx, dy] += attraction
-
-        # Remove all directions that are out of boundaries
-        scents = {
-            (dx, dy): scents[dx, dy] for dx, dy in scents
-            if 0 <= x+dx < border[0] and 0 <= y+dy < border[1]
-        }
-
-        # Once the attraction of all
-        # directions is determined,
-        # we randomly pick one.
-        choice = random.random() * sum(scents.values())
-        current = 0
-        for dx, dy in scents:
-            current += scents[dx, dy]
-            if current >= choice:
-                return dx, dy
+        # How attractive is our own tile?
+        try:
+            flavours = colony_scent[x][y]
+        except KeyError:
+            current_attraction = False
         else:
-            raise ValueError(
-                "Impossible random value detected - maybe an ant was forced to walk backwards?"
-            )
+            for f in flavours:
+                if f != z:
+                    current_attraction = True
+                    break
+            else:
+                current_attraction = False
+
+        if attractive != {} and random.random() < 0.75:
+            # We're picky if we're already in a good spot
+            if current_attraction:
+                least_scent = min(attractive.values())
+                options = [key for key in attractive if attractive[key] == least_scent]
+                return random.choice(options)
+            # Otherwise, take the most smelly place
+            else:
+                least_scent = max(attractive.values())
+                options = [key for key in attractive if attractive[key] == least_scent]
+                return random.choice(options)
+
+        elif neutral != []:
+            return random.choice(neutral)
+
+        elif unattractive != {}:
+            if random.random() < 0.25:
+                return random.choice([k for k in unattractive])
+            else:
+                least_scent = max(unattractive.values())
+                options = [key for key in unattractive if unattractive[key] == least_scent]
+                return random.choice(options)
+
+        else:
+            # Ant cornered itself, or got confused
+            return -1*pfx, -1*pfy
+
