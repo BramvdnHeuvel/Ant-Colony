@@ -26,9 +26,10 @@ def on_mouse_down(x, y):
     colony.spawn_food(circle=(x, y, 5))
 
 # Start showing the ant colony simulation
-viewer = Viewer(next_frame, 
-    (WIDTH, HEIGHT), 
-    PIXEL_SIZE,
+viewer = Viewer(
+    display_size=(WIDTH, HEIGHT), 
+    update_func=next_frame, 
+    pixel_size=PIXEL_SIZE,
     on_mouse_down=on_mouse_down,
     frames_per_sec=15
 )
