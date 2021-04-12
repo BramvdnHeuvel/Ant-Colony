@@ -4,27 +4,32 @@ from viewer import Viewer
 from colony import Colony
 
 # CONSTANTS
-PIXEL_SIZE = 4
-MAX_INTENSITY = 10
+PIXEL_SIZE = 18
+MAX_INTENSITY = 250
 
 # GAME RULES
-WIDTH = 250
-HEIGHT = 250
-COLONY_X = 125
-COLONY_Y = 125
+WIDTH = 50
+HEIGHT = 50
+COLONY_X = 25
+COLONY_Y = 25
 
 
 colony = Colony((WIDTH, HEIGHT), (COLONY_X, COLONY_Y), intensity=MAX_INTENSITY)
-colony.spawn_food(circle=(200, 200, 25))
-colony.spawn_ant(amount=500)
+#colony.spawn_food(circle=(175, 175, 25))
+colony.spawn_ant(amount=5)
 
 def next_frame():
     colony.next_frame()
     return colony.render(PIXEL_SIZE)
 
+def on_mouse_down(x, y):
+    colony.spawn_food(circle=(x, y, 5))
+
 # Start showing the ant colony simulation
 viewer = Viewer(next_frame, 
-    (PIXEL_SIZE*WIDTH, PIXEL_SIZE*HEIGHT), 
-    frames_per_sec=10
+    (WIDTH, HEIGHT), 
+    PIXEL_SIZE,
+    on_mouse_down=on_mouse_down,
+    frames_per_sec=15
 )
 viewer.start()
