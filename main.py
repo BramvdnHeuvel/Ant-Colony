@@ -19,10 +19,12 @@ colony = Colony((WIDTH, HEIGHT), (COLONY_X, COLONY_Y), intensity=MAX_INTENSITY)
 colony.spawn_ant(amount=5)
 
 def next_frame():
+    """Render the next frame"""
     colony.next_frame()
     return colony.render(PIXEL_SIZE)
 
 def on_mouse_down(x, y):
+    """Perform action when the user clicks on the given location"""
     colony.spawn_food(circle=(x, y, 5))
 
 # Start showing the ant colony simulation

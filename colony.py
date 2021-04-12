@@ -111,7 +111,7 @@ class Colony:
             max_y = max(0, min(cy+r, self.size[1]-1))
 
             for x in range(min_x, max_x+1):
-                for y in range(min_y, max_y):
+                for y in range(min_y, max_y+1):
                     euclid_dist = abs(cx-x)**2 + abs(cy-y)**2
                     if euclid_dist <= r**2:
                         self.food.add((x, y))
