@@ -5,10 +5,11 @@ import numpy
 
 class Colony:
     def __init__(self, 
-        size : Tuple[int, int], 
-        location : Tuple[int, int],
-        intensity : Optional[int]
-        ):
+                size                : Tuple[int, int], 
+                location            : Tuple[int, int],
+                intensity_per_ant   : int,
+                intensity_max       : int
+            ):
         self.size = size
         self.origin = location
 
@@ -18,7 +19,8 @@ class Colony:
         self.ants = []
 
         # Constants
-        self.MAX_SCENT_INTENSITY = intensity
+        self.MAX_SCENT_INTENSITY = intensity_max
+        self.ANT_SCENT_INTENSITY = intensity_per_ant
 
     def next_frame(self):
         """Simulate the next frame for the ant colony"""
@@ -49,11 +51,11 @@ class Colony:
                 for z in self.scent[x][y]:
                     if z == 'HUNGRY':
                         view[x, y, 2] = int(
-                            255 * self.scent[x][y][z] / self.MAX_SCENT_INTENSITY
+                            255 * self.scent[x][y][z][2] / self.MAX_SCENT_INTENSITY
                         )
                     if z == 'FULL':
                         view[x, y, 0] = int(
-                            255 * self.scent[x][y][z] / self.MAX_SCENT_INTENSITY
+                            255 * self.scent[x][y][z][2] / self.MAX_SCENT_INTENSITY
                         )
         
         # Show food
@@ -81,7 +83,11 @@ class Colony:
         for _ in range(amount):
             x, y = self.origin
             self.ants.append(
-                Ant((x, y, 'HUNGRY'), self.MAX_SCENT_INTENSITY)
+                Ant(
+                    (x, y, 'HUNGRY'), 
+                    self.ANT_SCENT_INTENSITY,
+                    self.MAX_SCENT_INTENSITY
+                )
             )
     
     def spawn_food(self, 
@@ -125,8 +131,9 @@ class Colony:
             for y in sx:
                 sy = sx[y]
                 for z in sy:
-                    sy[z] += -1
+                    dx, dy, i = sy[z]
+                    sy[z] = (dx, dy, i-1)
 
-                sx[y] = {z:sy[z] for z in sy if sy[z] > 0}
+                sx[y] = {z:sy[z] for z in sy if sy[z][2] > 0}
             s[x] = {y:sx[y] for y in sx if sx[y] != {}}
         self.scent = {x:s[x] for x in s if s[x] != {}}

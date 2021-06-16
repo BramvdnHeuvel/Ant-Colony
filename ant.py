@@ -4,10 +4,12 @@ import random
 
 class Ant:
     def __init__(self,  
-            coords : Tuple[int, int, int],
-            intensity : int
-            ):
+                coords : Tuple[int, int, int],
+                intensity : int,
+                max_intensity : int
+                ):
         self.intensity = intensity
+        self.max_intensity = max_intensity
         self.direction = (0, 0)
         self.coords = coords
     
@@ -16,7 +18,7 @@ class Ant:
         return self.coords[2]
 
     def move(self, 
-        scent : Dict[int, Dict[int, Dict[int, int]]],
+        scent : Dict[int, Dict[int, Dict[int, Tuple[int, int, int]]]],
         border : Tuple[int, int]) -> Tuple[int, int]:
         """Move on the board"""
         dx, dy = self.__choose_direction(border, scent)
@@ -36,14 +38,30 @@ class Ant:
     def leave_scent(self, s):
         """Leave behind a scent to pick up"""
         x, y, z = self.coords
+        dx, dy = self.direction
+        scent = (-1*dx, -1*dy, self.intensity)
 
         if x not in s:
-            s[x] = {y: {z: self.intensity}}
+            s[x] = {y: {z: scent}}
         elif y not in s[x]:
-            s[x][y] = {z: self.intensity}
+            s[x][y] = {z: scent}
+        elif z not in s[x][y]:
+            s[x][y][z] = scent
         else:
-            s[x][y][z] = self.intensity
-
+            # If the scent already exists,
+            # don't alter the direction
+            # but make it stronger
+            pass
+        
+        # Refurbish all existing scents
+        for f in s[x][y]:
+            dx, dy, i = s[x][y][f]
+            if f == z:
+                s[x][y][f] = (dx, dy,
+                    min(i + self.intensity, self.max_intensity))
+            else:
+                s[x][y][f] = (dx, dy,
+                    min(int(i*1.5), self.max_intensity))
     
     def __choose_direction(self, 
             border: Tuple[int, int],
@@ -51,78 +69,57 @@ class Ant:
                 ) -> Tuple[int, int]:
         """Choose a direction to head towards"""
         x, y, z = self.coords
-        pfx, pfy = self.direction
-
-        # Determine how attractive nearby tiles are
-        attractive = {}
-        neutral = []
-        unattractive = {}
-        for dx, dy in product([-1, 0, 1], repeat=2):
-            if dx == dy:
-                continue
-            if abs(pfx-dx) + abs(pfy-dy) == 4:
-                continue
-            if pfx == dx == 0 and pfy != dy:
-                continue
-            if pfy == dy == 0 and pfx != dx:
-                continue
-            if x+dx < 0 or border[0] <= x+dx:
-                continue
-            if y+dy < 0 or border[1] <= y+dy:
-                continue
-
-            try:
-                flavours = colony_scent[x+dx][y+dy]
-            except KeyError:
-                flavours = {}
-
-            for f in flavours:
-                if f != z:
-                    attractive[dx, dy] = flavours[f]
-                    break
-            else:
-                if z in flavours:
-                    unattractive[dx, dy] = flavours[z]
-                #else:
-                neutral.append((dx, dy))
-
-        # How attractive is our own tile?
+        dx, dy = 0, 0
         try:
-            flavours = colony_scent[x][y]
+            current = colony_scent[x][y]
         except KeyError:
-            current_attraction = False
+            # Check whether a nearby spot
+            # has a scent
+            possible = []
+            for dx, dy in product([-1, 0, 1], repeat=2):
+                if dx==dy==0:
+                    continue
+                try:
+                    s = colony_scent[x+dx][y+dy]
+                except KeyError:
+                    pass
+                else:
+                    for f in s:
+                        if f != z:
+                            possible.append((dx, dy))
+                            break
+            if len(possible) > 0:
+                dx, dy = random.choice(possible)
+            else:
+                dx, dy = 0, 0
         else:
-            for f in flavours:
+            # The scent has a direction! Therefore,
+            # take that direction.
+            for f in current:
                 if f != z:
-                    current_attraction = True
-                    break
+                    dx, dy = current[f][0], current[f][1]
             else:
-                current_attraction = False
+                if z in current:
+                    possible = []
+                    for dx, dy in product([-1, 0, 1], repeat=2):
+                        if dx == dy == 0:
+                            continue
 
-        if attractive != {} and random.random() < 0.75:
-            # We're picky if we're already in a good spot
-            if current_attraction:
-                least_scent = min(attractive.values())
-                options = [key for key in attractive if attractive[key] == least_scent]
-                return random.choice(options)
-            # Otherwise, take the most smelly place
-            else:
-                least_scent = max(attractive.values())
-                options = [key for key in attractive if attractive[key] == least_scent]
-                return random.choice(options)
+                        try:
+                            colony_scent[x+dx][y+dy][z]
+                        except KeyError:
+                            possible.append((dx, dy))
+                    
+                    dx, dy = 0, 0
+                    if len(possible) > 0:
+                        dx, dy = random.choice(possible)
 
-        elif neutral != []:
-            return random.choice(neutral)
 
-        elif unattractive != {}:
-            if random.random() < 0.25:
-                return random.choice([k for k in unattractive])
-            else:
-                least_scent = max(unattractive.values())
-                options = [key for key in unattractive if unattractive[key] == least_scent]
-                return random.choice(options)
-
-        else:
-            # Ant cornered itself, or got confused
-            return -1*pfx, -1*pfy
-
+        # No scent is found, so take a random path
+        while ((abs(dx) + abs(dy) == 0) or
+              (x+dx < 0 or x+dx >= border[0]) or
+              (y+dy < 0 or y+dy >= border[1]) or
+              (dx==self.direction*-1 and dy==self.direction*-1)):
+            dx = random.randint(-1, 1)
+            dy = random.randint(-1, 1)
+        return dx, dy
